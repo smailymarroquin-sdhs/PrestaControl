@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PrestaControl | Sistema de gestión de préstamos y cobranza</title>
+  <meta name="description" content="Software para administrar préstamos de capital: cuotas, intereses, mora, renovaciones, rutas de cobro y reportes. Disponible en venta o alquiler." />
+  <style>
+    /* ====== Variables de diseño (edita colores aquí) ====== */
+    :root {
+      --primary: #0b5cad;
+      --primary-dark: #08427d;
+      --accent: #12a150;
+      --warning: #d97706;
+      --danger: #c62828;
+      --bg: #f5f8fc;
+      --surface: #ffffff;
+      --text: #1b2430;
+      --muted: #55606e;
+      --border: #dde4ee;
+      --radius: 14px;
+      --shadow: 0 8px 24px rgba(16, 42, 84, .08);
+      --max: 1180px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } * { transition: none !important; } }
+    body { font-family: "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif; color: var(--text); background: var(--bg); line-height: 1.6; }
+    img, svg { max-width: 100%; display: block; }
+    a { color: var(--primary); }
+    .container { width: min(100% - 2rem, var(--max)); margin-inline: auto; }
+    .skip-link { position: absolute; left: -999px; top: 0; background: var(--primary-dark); color: #fff; padding: .6rem 1rem; z-index: 100; }
+    .skip-link:focus { left: 1rem; top: 1rem; }
+    :focus-visible { outline: 3px solid #ffb300; outline-offset: 2px; }
+    .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+    /* ====== Botones ====== */
+    .btn { display: inline-block; padding: .8rem 1.4rem; border-radius: 10px; font-weight: 600; text-decoration: none; border: 2px solid transparent; cursor: pointer; font-size: 1rem; transition: transform .15s, background .15s; }
+    .btn:hover { transform: translateY(-1px); }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-dark); }
+    .btn-outline { border-color: var(--primary); color: var(--primary); background: transparent; }
+    .btn-light { background: #fff; color: var(--primary-dark); }
+    .btn-ghost-light { border-color: #fff; color: #fff; }
+
+    /* ====== Header ====== */
+    header { position: sticky; top: 0; z-index: 50; background: rgba(255,255,255,.96); border-bottom: 1px solid var(--border); backdrop-filter: blur(6px); }
+    .nav { display: flex; align-items: center; justify-content: space-between; height: 68px; }
+    .logo { display: flex; align-items: center; gap: .5rem; font-weight: 800; font-size: 1.25rem; color: var(--primary-dark); text-decoration: none; }
+    .logo-mark { width: 34px; height: 34px; border-radius: 9px; background: linear-gradient(135deg, var(--primary), var(--accent)); display: grid; place-items: center; color: #fff; font-size: 1rem; }
+    .nav ul { display: flex; gap: 1.5rem; list-style: none; align-items: center; }
+    .nav ul a { text-decoration: none; color: var(--text); font-weight: 500; }
+    .nav ul a:hover { color: var(--primary); }
+    .menu-toggle { display: none; background: none; border: 1px solid var(--border); border-radius: 8px; padding: .45rem .7rem; font-size: 1.2rem; cursor: pointer; }
+    @media (max-width: 860px) {
+      .menu-toggle { display: block; }
+      .nav ul { display: none; position: absolute; top: 68px; left: 0; right: 0; flex-direction: column; background: #fff; padding: 1rem; border-bottom: 1px solid var(--border); gap: 1rem; }
+      .nav ul.open { display: flex; }
+    }
+
+    /* ====== Hero ====== */
+    .hero { background: linear-gradient(135deg, var(--primary-dark), var(--primary) 60%, #1478d4); color: #fff; padding: 5rem 0 6rem; overflow: hidden; }
+    .hero-grid { display: grid; grid-template-columns: 1.05fr 1fr; gap: 3rem; align-items: center; }
+    .badge { display: inline-block; background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.3); padding: .3rem .8rem; border-radius: 999px; font-size: .85rem; margin-bottom: 1rem; }
+    .hero h1 { font-size: clamp(2rem, 4vw, 3.1rem); line-height: 1.15; margin-bottom: 1rem; }
+    .hero p { font-size: 1.15rem; color: #e3eefb; margin-bottom: 2rem; max-width: 540px; }
+    .hero-actions { display: flex; gap: 1rem; flex-wrap: wrap; }
+    .hero-stats { display: flex; gap: 2rem; margin-top: 2.5rem; flex-wrap: wrap; }
+    .hero-stats strong { display: block; font-size: 1.6rem; }
+    .hero-stats span { color: #cfe0f5; font-size: .9rem; }
+    @media (max-width: 960px) { .hero-grid { grid-template-columns: 1fr; } }
+
+    /* ====== Mockup de dashboard ====== */
+    .mockup { background: #fff; color: var(--text); border-radius: 16px; box-shadow: 0 30px 60px rgba(0,0,0,.25); overflow: hidden; }
+    .mockup-bar { display: flex; gap: .4rem; padding: .7rem 1rem; background: #eef2f7; }
+    .mockup-bar span { width: 11px; height: 11px; border-radius: 50%; background: #c9d2de; }
+    .mockup-body { padding: 1.2rem; display: grid; gap: 1rem; }
+    .kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: .7rem; }
+    .kpi { background: var(--bg); border-radius: 10px; padding: .8rem; }
+    .kpi small { color: var(--muted); font-size: .75rem; display: block; }
+    .kpi b { font-size: 1.1rem; }
+    .kpi .up { color: var(--accent); font-size: .75rem; }
+    .kpi .down { color: var(--danger); font-size: .75rem; }
+    .chart { display: flex; align-items: flex-end; gap: .5rem; height: 110px; padding: .6rem; background: var(--bg); border-radius: 10px; }
+    .chart div { flex: 1; background: linear-gradient(to top, var(--primary), #4f9be6); border-radius: 5px 5px 0 0; }
+    .mini-table { width: 100%; border-collapse: collapse; font-size: .8rem; }
+    .mini-table th, .mini-table td { padding: .45rem; text-align: left; border-bottom: 1px solid var(--border); }
+    .mini-table th { color: var(--muted); font-weight: 600; }
+    .pill { padding: .1rem .5rem; border-radius: 999px; font-size: .72rem; font-weight: 600; }
+    .pill.ok { background: #e3f6ea; color: #0d7a3c; }
+    .pill.late { background: #fdecea; color: #a61b1b; }
+    .pill.warn { background: #fff4e0; color: #8a4b00; }
+
+    /* ====== Secciones ====== */
+    section { padding: 5rem 0; }
+    .section-head { text-align: center; max-width: 720px; margin: 0 auto 3rem; }
+    .section-head .eyebrow { color: var(--primary); font-weight: 700; text-transform: uppercase; letter-spacing: .08em; font-size: .85rem; }
+    .section-head h2 { font-size: clamp(1.7rem, 3vw, 2.4rem); margin: .4rem 0 .8rem; }
+    .section-head p { color: var(--muted); font-size: 1.05rem; }
+
+    /* ====== Módulos ====== */
+    .modules { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.4rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.6rem; box-shadow: var(--shadow); transition: transform .2s; }
+    .card:hover { transform: translateY(-4px); }
+    .icon { width: 50px; height: 50px; border-radius: 12px; display: grid; place-items: center; font-size: 1.5rem; margin-bottom: 1rem; background: #e8f1fb; }
+    .card h3 { font-size: 1.15rem; margin-bottom: .5rem; }
+    .card p { color: var(--muted); font-size: .95rem; margin-bottom: .8rem; }
+    .card ul { list-style: none; font-size: .9rem; }
+    .card li { padding-left: 1.4rem; position: relative; margin-bottom: .3rem; }
+    .card li::before { content: "✓"; position: absolute; left: 0; color: var(--accent); font-weight: 700; }
+
+    /* ====== Cómo funciona ====== */
+    .how { background: var(--surface); }
+    .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 1.5rem; counter-reset: step; }
+    .step { text-align: center; padding: 1rem; }
+    .step::before { counter-increment: step; content: counter(step); display: grid; place-items: center; width: 52px; height: 52px; margin: 0 auto 1rem; border-radius: 50%; background: var(--primary); color: #fff; font-weight: 800; font-size: 1.3rem; }
+    .step h3 { font-size: 1.05rem; margin-bottom: .4rem; }
+    .step p { color: var(--muted); font-size: .93rem; }
+
+    /* ====== Reportes ====== */
+    .reports-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2.5rem; align-items: center; }
+    @media (max-width: 900px) { .reports-grid { grid-template-columns: 1fr; } }
+    .aging { background: #fff; border-radius: var(--radius); box-shadow: var(--shadow); padding: 1.5rem; border: 1px solid var(--border); }
+    .aging h3 { margin-bottom: 1rem; font-size: 1.05rem; }
+    .bar-row { display: grid; grid-template-columns: 90px 1fr 70px; gap: .7rem; align-items: center; margin-bottom: .8rem; font-size: .9rem; }
+    .bar-track { background: var(--bg); height: 14px; border-radius: 999px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 999px; }
+    .report-list { list-style: none; display: grid; gap: .9rem; }
+    .report-list li { display: flex; gap: .9rem; background: #fff; padding: 1rem; border-radius: 12px; border: 1px solid var(--border); }
+    .report-list b { display: block; }
+    .report-list span { color: var(--muted); font-size: .92rem; }
+
+    /* ====== Cobranza en campo ====== */
+    .field-grid { display: grid; grid-template-columns: 1.2fr 1fr; gap: 3rem; align-items: center; }
+    @media (max-width: 960px) { .field-grid { grid-template-columns: 1fr; } }
+    .hierarchy { display: grid; gap: 1rem; }
+    .level { display: flex; flex-wrap: wrap; gap: .8rem; justify-content: center; position: relative; }
+    .level + .level::before { content: "↓"; position: absolute; top: -1.05rem; left: 50%; transform: translateX(-50%); color: var(--primary); font-weight: 700; font-size: .95rem; }
+    .node { background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: .7rem 1rem; box-shadow: var(--shadow); text-align: center; min-width: 130px; }
+    .node b { display: block; font-size: .95rem; }
+    .node small { color: var(--muted); font-size: .8rem; }
+    .node.sup { border-top: 4px solid #7b3fe4; }
+    .node.cob { border-top: 4px solid var(--primary); }
+    .node.ruta { border-top: 4px solid var(--warning); }
+    .node.cli { border-top: 4px solid var(--accent); }
+    .legend { display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center; margin-top: 1.5rem; font-size: .88rem; color: var(--muted); }
+    .legend span::before { content: ""; display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: .4rem; vertical-align: -1px; background: var(--c); }
+
+    .phone { width: 300px; max-width: 100%; margin: 0 auto; background: #111a27; border-radius: 34px; padding: 14px; box-shadow: 0 30px 60px rgba(0,0,0,.25); }
+    .phone-screen { background: #fff; border-radius: 24px; overflow: hidden; }
+    .phone-head { background: var(--primary); color: #fff; padding: 1rem; }
+    .phone-head small { color: #cfe0f5; display: block; font-size: .78rem; }
+    .phone-body { padding: 1rem; display: grid; gap: .8rem; font-size: .85rem; }
+    .phone-row { display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding-bottom: .4rem; }
+    .phone-row span { color: var(--muted); }
+    .pay-methods { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; }
+    .pay-methods div { border: 2px solid var(--border); border-radius: 10px; padding: .55rem; text-align: center; font-weight: 600; }
+    .pay-methods .active { border-color: var(--primary); background: #e8f1fb; color: var(--primary-dark); }
+    .gps { background: #e3f6ea; color: #0d6b35; border-radius: 10px; padding: .6rem .7rem; font-size: .8rem; }
+    .gps b { display: block; }
+    .phone-btn { background: var(--accent); color: #fff; text-align: center; border-radius: 10px; padding: .7rem; font-weight: 700; }
+
+    .field-features { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 1.2rem; margin-top: 3.5rem; }
+    .feature { background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 1.2rem; }
+    .feature h3 { font-size: 1rem; margin-bottom: .3rem; }
+    .feature p { color: var(--muted); font-size: .9rem; }
+
+    /* ====== Precios ====== */
+    .pricing { background: var(--surface); }
+    .toggle { display: flex; justify-content: center; margin-bottom: 2.5rem; }
+    .toggle-inner { display: inline-flex; background: var(--bg); border: 1px solid var(--border); border-radius: 999px; padding: .3rem; }
+    .toggle button { border: none; background: transparent; padding: .65rem 1.4rem; border-radius: 999px; font-weight: 600; cursor: pointer; font-size: .98rem; color: var(--muted); }
+    .toggle button[aria-selected="true"] { background: var(--primary); color: #fff; }
+    .plans { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 1.5rem; align-items: stretch; }
+    .plan { border: 1px solid var(--border); border-radius: var(--radius); padding: 2rem; display: flex; flex-direction: column; background: #fff; position: relative; }
+    .plan.featured { border: 2px solid var(--primary); box-shadow: 0 16px 40px rgba(11, 92, 173, .18); }
+    .plan .tag { position: absolute; top: -13px; left: 50%; transform: translateX(-50%); background: var(--primary); color: #fff; font-size: .78rem; padding: .25rem .8rem; border-radius: 999px; font-weight: 700; }
+    .plan h3 { font-size: 1.25rem; }
+    .plan .desc { color: var(--muted); font-size: .92rem; margin: .3rem 0 1.2rem; }
+    .price { font-size: 2.4rem; font-weight: 800; color: var(--primary-dark); }
+    .price small { font-size: .95rem; font-weight: 500; color: var(--muted); }
+    .plan ul { list-style: none; margin: 1.5rem 0; flex: 1; }
+    .plan li { padding: .4rem 0 .4rem 1.6rem; position: relative; border-bottom: 1px dashed var(--border); font-size: .94rem; }
+    .plan li::before { content: "✓"; position: absolute; left: 0; color: var(--accent); font-weight: 700; }
+    .plan li.no { color: #8a93a0; }
+    .plan li.no::before { content: "–"; color: #9aa3ae; }
+    .plan .btn { text-align: center; }
+    .note { text-align: center; color: var(--muted); font-size: .9rem; margin-top: 1.5rem; }
+    [hidden] { display: none !important; }
+
+    /* ====== Comparativa ====== */
+    .compare { width: 100%; border-collapse: collapse; background: #fff; border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); }
+    .compare caption { text-align: left; font-weight: 700; padding: 0 0 1rem; font-size: 1.1rem; }
+    .compare th, .compare td { padding: .9rem 1rem; border-bottom: 1px solid var(--border); text-align: left; }
+    .compare thead th { background: var(--primary-dark); color: #fff; }
+    .table-wrap { overflow-x: auto; }
+
+    /* ====== FAQ ====== */
+    .faq { max-width: 820px; margin: 0 auto; display: grid; gap: .8rem; }
+    details { background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 1rem 1.3rem; }
+    summary { font-weight: 600; cursor: pointer; list-style: none; display: flex; justify-content: space-between; gap: 1rem; }
+    summary::-webkit-details-marker { display: none; }
+    summary::after { content: "+"; font-size: 1.3rem; color: var(--primary); }
+    details[open] summary::after { content: "−"; }
+    details p { color: var(--muted); margin-top: .7rem; }
+
+    /* ====== CTA / Contacto ====== */
+    .cta { background: linear-gradient(135deg, var(--primary-dark), var(--primary)); color: #fff; }
+    .contact-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; align-items: start; }
+    @media (max-width: 900px) { .contact-grid { grid-template-columns: 1fr; } }
+    .cta h2 { font-size: clamp(1.7rem, 3vw, 2.3rem); margin-bottom: 1rem; }
+    .cta p { color: #e3eefb; margin-bottom: 1.5rem; }
+    .contact-info { list-style: none; display: grid; gap: .7rem; }
+    .contact-info a { color: #fff; }
+    form { background: #fff; color: var(--text); padding: 2rem; border-radius: var(--radius); display: grid; gap: 1rem; }
+    label { font-weight: 600; font-size: .92rem; display: block; margin-bottom: .3rem; }
+    input, select, textarea { width: 100%; padding: .75rem; border: 1px solid #b8c3d1; border-radius: 9px; font: inherit; }
+    textarea { min-height: 100px; resize: vertical; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    @media (max-width: 560px) { .form-row { grid-template-columns: 1fr; } }
+    .form-msg { font-weight: 600; color: var(--accent); }
+
+    footer { background: #0e1a2b; color: #a9b6c7; padding: 2.5rem 0; font-size: .9rem; }
+    .footer-grid { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 1rem; }
+    footer a { color: #d5e1f0; }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#contenido">Saltar al contenido</a>
+
+  <!-- ====== HEADER ====== -->
+  <header>
+    <nav class="container nav" aria-label="Navegación principal">
+      <a href="#" class="logo" aria-label="PrestaControl, inicio">
+        <span class="logo-mark" aria-hidden="true">₱</span> PrestaControl
+      </a>
+      <button class="menu-toggle" aria-expanded="false" aria-controls="menu" aria-label="Abrir menú">☰</button>
+      <ul id="menu">
+        <li><a href="#modulos">Módulos</a></li>
+        <li><a href="#como-funciona">Cómo funciona</a></li>
+        <li><a href="#cobranza">Cobranza</a></li>
+        <li><a href="#reportes">Reportes</a></li>
+        <li><a href="#precios">Precios</a></li>
+        <li><a href="#faq">Preguntas</a></li>
+        <li><a href="#contacto" class="btn btn-primary">Solicitar demo</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main id="contenido">
+    <!-- ====== HERO ====== -->
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="container hero-grid">
+        <div>
+          <span class="badge">Software de préstamos y cobranza</span>
+          <h1 id="hero-title">Controla tu cartera de préstamos de principio a fin</h1>
+          <p>Cuotas, intereses, mora, renovaciones, rutas de cobro y reportes en tiempo real. Todo en una sola plataforma segura, disponible en <strong>alquiler mensual</strong> o <strong>compra de licencia</strong>.</p>
+          <div class="hero-actions">
+            <a href="#contacto" class="btn btn-light">Solicitar demo gratis</a>
+            <a href="#precios" class="btn btn-ghost-light">Ver planes</a>
+          </div>
+          <div class="hero-stats">
+            <div><strong>100%</strong><span>Cálculo automático de cuotas</span></div>
+            <div><strong>24/7</strong><span>Acceso desde la nube</span></div>
+            <div><strong>+10</strong><span>Reportes listos</span></div>
+          </div>
+        </div>
+
+        <!-- Mockup ilustrativo del panel -->
+        <div class="mockup" role="img" aria-label="Vista previa del panel de control con indicadores de cartera, gráfico de cobros y lista de préstamos">
+          <div class="mockup-bar" aria-hidden="true"><span></span><span></span><span></span></div>
+          <div class="mockup-body" aria-hidden="true">
+            <div class="kpis">
+              <div class="kpi"><small>Cartera activa</small><b>$248,350</b><div class="up">▲ 8.2%</div></div>
+              <div class="kpi"><small>Cobrado hoy</small><b>$12,480</b><div class="up">▲ 3.1%</div></div>
+              <div class="kpi"><small>En mora</small><b>6.4%</b><div class="down">▼ 1.2%</div></div>
+            </div>
+            <div class="chart">
+              <div style="height:45%"></div><div style="height:62%"></div><div style="height:55%"></div>
+              <div style="height:78%"></div><div style="height:70%"></div><div style="height:88%"></div><div style="height:95%"></div>
+            </div>
+            <table class="mini-table">
+              <thead><tr><th>Cliente</th><th>Ruta</th><th>Atraso</th><th>Estado</th></tr></thead>
+              <tbody>
+                <tr><td>Cliente A</td><td>Centro</td><td>0 días</td><td><span class="pill ok">Al día</span></td></tr>
+                <tr><td>Cliente B</td><td>Mercado</td><td>3 días</td><td><span class="pill warn">Gracia</span></td></tr>
+                <tr><td>Cliente C</td><td>Colonias</td><td>17 días</td><td><span class="pill late">En mora</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====== MÓDULOS ====== -->
+    <section id="modulos" aria-labelledby="modulos-title">
+      <div class="container">
+        <div class="section-head">
+          <span class="eyebrow">Módulos</span>
+          <h2 id="modulos-title">Todo lo que necesitas para administrar préstamos</h2>
+          <p>Cada módulo está integrado con los demás: un pago actualiza la cuenta corriente, la mora y los reportes al instante.</p>
+        </div>
+
+        <div class="modules">
+          <article class="card">
+            <div class="icon" aria-hidden="true">👤</div>
+            <h3>Clientes</h3>
+            <p>Expediente completo de cada cliente.</p>
+            <ul>
+              <li>Datos personales y documentos</li>
+              <li>Referencias y garantías</li>
+              <li>Historial crediticio interno</li>
+            </ul>
+          </article>
+
+          <article class="card">
+            <div class="icon" aria-hidden="true">🗺️</div>
+            <h3>Rutas y clientes por ruta</h3>
+            <p>Organiza tu cartera por zonas de cobro.</p>
+            <ul>
+              <li>Clientes agrupados por ruta</li>
+              <li>Orden de visita dentro de la ruta</li>
+              <li>Dirección y coordenadas GPS del cliente</li>
+              <li>Traslado de clientes entre rutas</li>
+            </ul>
+          </article>
+
+          <article class="card">
+            <div class="icon" aria-hidden="true">🚶</div>
+            <h3>Cobradores</h3>
+            <p>Cada cobrador ve solo su trabajo del día.</p>
+            <ul>
+              <li>Rutas asignadas a cada cobrador</li>
+              <li>Lista de cobro diaria por ruta</li>
+              <li>Meta de recaudación y efectividad</li>
+              <li>Cierre y cuadre de caja diario</li>
+            </ul>
+          </article>
+
+          <article class="card">
+            <div class="icon" aria-hidden="true">🧑‍💼</div>
+            <h3>Supervisores de cobro</h3>
+            <p>Control del equipo en campo.</p>
+            <ul>
+              <li>Cobradores a cargo de cada supervisor</li>
+              <li>Monitoreo de cobros en tiempo real</li>
+              <li>Mapa de pagos registrados</li>
+              <li>Aprobación de cierres de caja</li>
+            </ul>
+          </article>
+
+          <article class="card">
+            <div class="icon" aria-hidden="true">💳</div>
+            <h3>Formas de pago</h3>
+            <p>Registra cómo paga cada cliente.</p>
+            <ul>
+              <li>Efectivo cobrado en ruta</li>
+              <li>Depósito o transferencia bancaria</li>
+              <li>Número de boleta y foto del comprobante</li>
+              <li>Verificación de depósitos</li>
+            </ul>
+          </article>
+
+          <article class="card">
+            <div class="icon" aria-hidden="true">📍</div>
+            <h3>Pago con geolocalización</h3>
+            <p>Cada cobro queda ubicado en el mapa.</p>
+            <ul>
+              <li>Captura automática de GPS al registrar el pago</li>
+              <li>Fecha, hora y cobrador del registro</li>
+              <li>Distancia al domicilio del cliente</li>
+              <li>Alerta de pagos fuera de zona</li>
+            </ul>
+          </article>
+
+          <article class="card">
+            <div class="icon" aria-hidden="true">💰</div>
+            <h3>Préstamos</h3>
+            <p>Configura cada préstamo a tu medida.</p>
+            <ul>
+              <li>Monto, tasa y plazo</li>
+              <li>Frecuencia diaria, semanal, quincenal o mensual</li>
+              <li>Interés fijo o sobre saldo</li>
+            </ul>
+          </article>
+
+          <article class="card">
+            <div class="icon" aria-hidden="true">📅</div>
+            <h3>Plan de cuotas</h3>
+            <p>Tabla de amortización automática.</p>
+            <ul>
+              <li>Capital, interés y saldo por cuota</li>
+              <li>Fechas de vencimiento</li>
+              <li>Exclusión de domingos y feriados</li>
+            </ul>
+          </article>
+
+          <article class="card">
+            <div class="icon" aria-hidden="true">🧾</div>
+            <h3>Cuenta corriente y pagos</h3>
+            <p>Cada movimiento queda registrado.</p>
+            <ul>
+              <li>Pagos parciales y adelantados</li>
+              <li>Aplicación: mora → interés → capital</li>
+              <li>Recibos y estado de cuenta</li>
+              <li>Movimientos por forma de pago</li>
+            </ul>
+          </article>
+
+          <article class="card">
+            <div class="icon" aria-hidden="true">⏰</div>
+            <h3>Mora y días de atraso</h3>
+            <p>Control automático de vencimientos.</p>
+            <ul>
+              <li>Cálculo diario de días de atraso</li>
+              <li>Recargos configurables</li>
+              <li>Días de gracia</li>
+            </ul>
+          </article>
+
+          <article class="card">
+            <div class="icon" aria-hidden="true">🔄</div>
+            <h3>Renovaciones</h3>
+            <p>Renueva préstamos sin perder la trazabilidad.</p>
+            <ul>
+              <li>Liquidación del saldo anterior</li>
+              <li>Cálculo de desembolso neto</li>
+              <li>Historial de renovaciones vinculado</li>
+            </ul>
+          </article>
+
+          <article class="card">
+            <div class="icon" aria-hidden="true">📊</div>
+            <h3>Reportes</h3>
+            <p>Información para tomar decisiones.</p>
+            <ul>
+              <li>Cartera activa y vencida</li>
+              <li>Cobros por cobrador o ruta</li>
+              <li>Exportación a PDF y Excel</li>
+            </ul>
+          </article>
+
+          <article class="card">
+            <div class="icon" aria-hidden="true">🔐</div>
+            <h3>Usuarios y seguridad</h3>
+            <p>Acceso controlado por roles.</p>
+            <ul>
+              <li>Roles: Administrador, Supervisor, Cobrador, Consulta</li>
+              <li>Autenticación segura (JWT)</li>
+              <li>Bitácora de auditoría</li>
+            </ul>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====== CÓMO FUNCIONA ====== -->
+    <section id="como-funciona" class="how" aria-labelledby="como-title">
+      <div class="container">
+        <div class="section-head">
+          <span class="eyebrow">Cómo funciona</span>
+          <h2 id="como-title">De la solicitud al cobro en 4 pasos</h2>
+        </div>
+        <div class="steps">
+          <div class="step"><h3>Registra al cliente</h3><p>Captura sus datos y ubicación, y asígnalo a una ruta.</p></div>
+          <div class="step"><h3>Crea el préstamo</h3><p>Define monto, tasa y frecuencia: el plan de cuotas se genera solo.</p></div>
+          <div class="step"><h3>Cobra en ruta</h3><p>El cobrador registra el pago en efectivo o depósito y el sistema guarda la ubicación GPS.</p></div>
+          <div class="step"><h3>Supervisa y analiza</h3><p>El supervisor valida cierres de caja, revisa el mapa de cobros y los reportes de mora.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====== COBRANZA EN CAMPO ====== -->
+    <section id="cobranza" aria-labelledby="cobranza-title">
+      <div class="container">
+        <div class="section-head">
+          <span class="eyebrow">Cobranza en campo</span>
+          <h2 id="cobranza-title">Tu equipo de cobro organizado y bajo control</h2>
+          <p>Supervisores a cargo de cobradores, cobradores con rutas asignadas y clientes agrupados por ruta. Cada pago queda registrado con su forma de pago y ubicación.</p>
+        </div>
+
+        <div class="field-grid">
+          <!-- Jerarquía de cobranza -->
+          <div>
+            <div class="hierarchy" role="img" aria-label="Estructura de cobranza: un supervisor tiene a cargo varios cobradores; cada cobrador tiene rutas asignadas; cada ruta agrupa a sus clientes">
+              <div class="level" aria-hidden="true">
+                <div class="node sup"><b>Supervisor</b><small>Zona Norte</small></div>
+              </div>
+              <div class="level" aria-hidden="true">
+                <div class="node cob"><b>Cobrador 1</b><small>2 rutas</small></div>
+                <div class="node cob"><b>Cobrador 2</b><small>1 ruta</small></div>
+              </div>
+              <div class="level" aria-hidden="true">
+                <div class="node ruta"><b>Ruta Centro</b><small>Lun – Sáb</small></div>
+                <div class="node ruta"><b>Ruta Mercado</b><small>Diaria</small></div>
+                <div class="node ruta"><b>Ruta Colonias</b><small>Semanal</small></div>
+              </div>
+              <div class="level" aria-hidden="true">
+                <div class="node cli"><b>32 clientes</b><small>Ruta Centro</small></div>
+                <div class="node cli"><b>45 clientes</b><small>Ruta Mercado</small></div>
+                <div class="node cli"><b>28 clientes</b><small>Ruta Colonias</small></div>
+              </div>
+            </div>
+            <div class="legend" aria-hidden="true">
+              <span style="--c:#7b3fe4">Supervisores</span>
+              <span style="--c:var(--primary)">Cobradores</span>
+              <span style="--c:var(--warning)">Rutas</span>
+              <span style="--c:var(--accent)">Clientes</span>
+            </div>
+          </div>
+
+          <!-- Simulación del registro de pago en el celular del cobrador -->
+          <div class="phone" role="img" aria-label="Pantalla del celular del cobrador registrando un pago: cliente, ruta, cuota, monto, forma de pago efectivo o depósito, y ubicación GPS capturada automáticamente">
+            <div class="phone-screen" aria-hidden="true">
+              <div class="phone-head">
+                <small>Ruta Mercado · Cobrador 2</small>
+                <b>Registrar pago</b>
+              </div>
+              <div class="phone-body">
+                <div class="phone-row"><span>Cliente</span><b>Cliente B</b></div>
+                <div class="phone-row"><span>Cuota</span><b>8 de 20</b></div>
+                <div class="phone-row"><span>Atraso</span><b style="color:var(--warning)">3 días</b></div>
+                <div class="phone-row"><span>Monto</span><b>$ 150.00</b></div>
+                <div>
+                  <span style="color:var(--muted)">Forma de pago</span>
+                  <div class="pay-methods" style="margin-top:.4rem">
+                    <div class="active">💵 Efectivo</div>
+                    <div>🏦 Depósito</div>
+                  </div>
+                </div>
+                <div class="gps">
+                  <b>📍 Ubicación capturada</b>
+                  14.6349, -90.5069 · precisión 8 m<br />A 35 m del domicilio del cliente
+                </div>
+                <div class="phone-btn">Confirmar pago</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="field-features">
+          <div class="feature"><h3>💵 Pago en efectivo</h3><p>El cobrador lo recibe en ruta, se suma a su caja del día y se cuadra en el cierre.</p></div>
+          <div class="feature"><h3>🏦 Pago por depósito</h3><p>Se registra el banco, el número de boleta y la foto del comprobante; queda pendiente hasta que se verifica.</p></div>
+          <div class="feature"><h3>📍 Ubicación obligatoria</h3><p>Al confirmar el pago se guardan las coordenadas, la precisión, la fecha y la hora del registro.</p></div>
+          <div class="feature"><h3>🚨 Alertas de control</h3><p>El supervisor recibe aviso si un pago se registra lejos del domicilio o fuera de la ruta.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====== REPORTES ====== -->
+    <section id="reportes" aria-labelledby="reportes-title">
+      <div class="container">
+        <div class="section-head">
+          <span class="eyebrow">Reportes</span>
+          <h2 id="reportes-title">Conoce el estado real de tu cartera</h2>
+          <p>Reportes listos para usar, filtrables por fecha, ruta, cobrador o cliente.</p>
+        </div>
+        <div class="reports-grid">
+          <div class="aging" role="img" aria-label="Ejemplo de reporte de antigüedad de mora: al día 78 por ciento, 1 a 30 días 12 por ciento, 31 a 60 días 6 por ciento, 61 a 90 días 3 por ciento, más de 90 días 1 por ciento">
+            <h3 aria-hidden="true">Antigüedad de cartera (ejemplo)</h3>
+            <div aria-hidden="true">
+              <div class="bar-row"><span>Al día</span><div class="bar-track"><div class="bar-fill" style="width:78%;background:var(--accent)"></div></div><b>78%</b></div>
+              <div class="bar-row"><span>1–30 días</span><div class="bar-track"><div class="bar-fill" style="width:12%;background:#f2b705"></div></div><b>12%</b></div>
+              <div class="bar-row"><span>31–60 días</span><div class="bar-track"><div class="bar-fill" style="width:6%;background:var(--warning)"></div></div><b>6%</b></div>
+              <div class="bar-row"><span>61–90 días</span><div class="bar-track"><div class="bar-fill" style="width:3%;background:#e0592a"></div></div><b>3%</b></div>
+              <div class="bar-row"><span>+90 días</span><div class="bar-track"><div class="bar-fill" style="width:1%;background:var(--danger)"></div></div><b>1%</b></div>
+            </div>
+          </div>
+          <ul class="report-list">
+            <li><span aria-hidden="true">📈</span><div><b>Cartera activa</b><span>Capital prestado, saldo pendiente e intereses por cobrar.</span></div></li>
+            <li><span aria-hidden="true">⚠️</span><div><b>Cartera vencida</b><span>Clientes en mora agrupados por rangos de días de atraso.</span></div></li>
+            <li><span aria-hidden="true">🚶</span><div><b>Cobros del día</b><span>Recaudación por cobrador, ruta y supervisor, con cuadre de caja.</span></div></li>
+            <li><span aria-hidden="true">💳</span><div><b>Cobros por forma de pago</b><span>Efectivo y depósitos, incluidos los depósitos pendientes de verificar.</span></div></li>
+            <li><span aria-hidden="true">🗺️</span><div><b>Mapa de pagos</b><span>Ubicación de cada pago registrado y alertas de pagos fuera de zona.</span></div></li>
+            <li><span aria-hidden="true">🏅</span><div><b>Desempeño de cobradores</b><span>Efectividad de cobro, metas alcanzadas y mora por cartera asignada.</span></div></li>
+            <li><span aria-hidden="true">📄</span><div><b>Estado de cuenta</b><span>Detalle de movimientos y saldo de cada cliente.</span></div></li>
+            <li><span aria-hidden="true">💵</span><div><b>Intereses ganados</b><span>Rentabilidad por período, ruta o tipo de préstamo.</span></div></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====== PRECIOS ====== -->
+    <section id="precios" class="pricing" aria-labelledby="precios-title">
+      <div class="container">
+        <div class="section-head">
+          <span class="eyebrow">Planes</span>
+          <h2 id="precios-title">Alquílalo o cómpralo, tú eliges</h2>
+          <p>Empieza con una suscripción mensual sin inversión inicial, o adquiere la licencia y el sistema es tuyo.</p>
+        </div>
+
+        <div class="toggle">
+          <div class="toggle-inner" role="tablist" aria-label="Modalidad de contratación">
+            <button role="tab" id="tab-alquiler" aria-selected="true" aria-controls="panel-alquiler">Alquiler (SaaS)</button>
+            <button role="tab" id="tab-venta" aria-selected="false" aria-controls="panel-venta" tabindex="-1">Venta (licencia)</button>
+          </div>
+        </div>
+
+        <!-- Precios de ejemplo: ajústalos a tu mercado y moneda -->
+        <div id="panel-alquiler" role="tabpanel" aria-labelledby="tab-alquiler" class="plans">
+          <article class="plan">
+            <h3>Básico</h3>
+            <p class="desc">Para prestamistas que inician.</p>
+            <div class="price">$29 <small>/ mes</small></div>
+            <ul>
+              <li>Hasta 150 préstamos activos</li>
+              <li>2 usuarios</li>
+              <li>Clientes, préstamos y cuotas</li>
+              <li>Control de mora</li>
+              <li>Pagos en efectivo y depósito</li>
+              <li>1 ruta y 1 cobrador</li>
+              <li>Reportes básicos</li>
+              <li class="no">Supervisores y mapa de pagos</li>
+              <li class="no">Exportación Excel</li>
+            </ul>
+            <a href="#contacto" class="btn btn-outline" data-plan="Alquiler - Básico">Comenzar</a>
+          </article>
+
+          <article class="plan featured">
+            <span class="tag">Más popular</span>
+            <h3>Profesional</h3>
+            <p class="desc">Para negocios con equipo de cobro.</p>
+            <div class="price">$69 <small>/ mes</small></div>
+            <ul>
+              <li>Hasta 1,000 préstamos activos</li>
+              <li>10 usuarios</li>
+              <li>Todos los módulos</li>
+              <li>Rutas, cobradores y supervisores</li>
+              <li>Pagos con geolocalización</li>
+              <li>Verificación de depósitos</li>
+              <li>Renovaciones</li>
+              <li>Reportes PDF y Excel</li>
+              <li>Soporte por chat</li>
+            </ul>
+            <a href="#contacto" class="btn btn-primary" data-plan="Alquiler - Profesional">Comenzar</a>
+          </article>
+
+          <article class="plan">
+            <h3>Empresarial</h3>
+            <p class="desc">Para financieras en crecimiento.</p>
+            <div class="price">$149 <small>/ mes</small></div>
+            <ul>
+              <li>Préstamos ilimitados</li>
+              <li>Usuarios ilimitados</li>
+              <li>Múltiples sucursales</li>
+              <li>Mapa de pagos y alertas fuera de zona</li>
+              <li>API para integraciones</li>
+              <li>Respaldos diarios</li>
+              <li>Soporte prioritario</li>
+              <li>Capacitación incluida</li>
+            </ul>
+            <a href="#contacto" class="btn btn-outline" data-plan="Alquiler - Empresarial">Contactar</a>
+          </article>
+        </div>
+
+        <div id="panel-venta" role="tabpanel" aria-labelledby="tab-venta" class="plans" hidden>
+          <article class="plan">
+            <h3>Licencia Estándar</h3>
+            <p class="desc">Instalación en tu propio servidor.</p>
+            <div class="price">$1,200 <small>pago único</small></div>
+            <ul>
+              <li>Todos los módulos</li>
+              <li>Usuarios ilimitados</li>
+              <li>Instalación incluida</li>
+              <li>3 meses de soporte</li>
+              <li>Actualizaciones por 6 meses</li>
+              <li class="no">Código fuente</li>
+            </ul>
+            <a href="#contacto" class="btn btn-outline" data-plan="Venta - Licencia Estándar">Cotizar</a>
+          </article>
+
+          <article class="plan featured">
+            <span class="tag">Recomendado</span>
+            <h3>Licencia Plus</h3>
+            <p class="desc">Personalizado con tu marca.</p>
+            <div class="price">$2,500 <small>pago único</small></div>
+            <ul>
+              <li>Todo lo de Estándar</li>
+              <li>Logo y colores de tu empresa</li>
+              <li>Ajustes a tus reglas de negocio</li>
+              <li>Capacitación del personal</li>
+              <li>12 meses de soporte</li>
+              <li>Actualizaciones por 12 meses</li>
+            </ul>
+            <a href="#contacto" class="btn btn-primary" data-plan="Venta - Licencia Plus">Cotizar</a>
+          </article>
+
+          <article class="plan">
+            <h3>Código Fuente</h3>
+            <p class="desc">Propiedad total del sistema.</p>
+            <div class="price">A cotizar</div>
+            <ul>
+              <li>Código fuente completo (.NET 10)</li>
+              <li>Documentación técnica</li>
+              <li>Derecho de modificación</li>
+              <li>Transferencia de conocimiento</li>
+              <li>Soporte de implementación</li>
+            </ul>
+            <a href="#contacto" class="btn btn-outline" data-plan="Venta - Código Fuente">Contactar</a>
+          </article>
+        </div>
+        <p class="note">Precios de referencia en USD. No incluyen impuestos. Mantenimiento anual opcional para licencias.</p>
+
+        <!-- Comparativa alquiler vs venta -->
+        <div class="table-wrap" style="margin-top:3.5rem">
+          <table class="compare">
+            <caption>¿Alquiler o venta? Compara las modalidades</caption>
+            <thead>
+              <tr><th scope="col">Característica</th><th scope="col">Alquiler (SaaS)</th><th scope="col">Venta (licencia)</th></tr>
+            </thead>
+            <tbody>
+              <tr><th scope="row">Inversión inicial</th><td>Baja, pago mensual</td><td>Pago único</td></tr>
+              <tr><th scope="row">Servidor</th><td>Incluido en la nube</td><td>Propio o en tu nube</td></tr>
+              <tr><th scope="row">Actualizaciones</th><td>Automáticas e incluidas</td><td>Según el período contratado</td></tr>
+              <tr><th scope="row">Respaldos</th><td>Incluidos</td><td>A cargo del cliente</td></tr>
+              <tr><th scope="row">Personalización</th><td>Configuración estándar</td><td>Amplia</td></tr>
+              <tr><th scope="row">Ideal para</th><td>Empezar rápido</td><td>Control total de la información</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====== FAQ ====== -->
+    <section id="faq" aria-labelledby="faq-title">
+      <div class="container">
+        <div class="section-head">
+          <span class="eyebrow">Preguntas frecuentes</span>
+          <h2 id="faq-title">Resolvemos tus dudas</h2>
+        </div>
+        <div class="faq">
+          <details><summary>¿Puedo configurar mis propias tasas de interés?</summary><p>Sí. Cada préstamo puede tener su propia tasa, plazo y frecuencia de pago, con interés fijo o calculado sobre saldo.</p></details>
+          <details><summary>¿Cómo se calculan los días de atraso y la mora?</summary><p>El sistema revisa los vencimientos todos los días, calcula los días de atraso de cada cuota y aplica el recargo que configures, respetando los días de gracia.</p></details>
+          <details><summary>¿Los cobradores pueden usarlo desde el celular?</summary><p>Sí. La plataforma es accesible desde cualquier navegador y cada cobrador ve únicamente los clientes de sus rutas asignadas.</p></details>
+          <details><summary>¿Cómo se toma la ubicación al registrar un pago?</summary><p>Al confirmar el pago, el celular del cobrador envía las coordenadas GPS, la precisión y la hora. El cobrador debe autorizar el acceso a la ubicación en su dispositivo.</p></details>
+          <details><summary>¿Qué controla el supervisor de cobro?</summary><p>Ve los cobros de sus cobradores en tiempo real, revisa el mapa de pagos, aprueba los cierres de caja y recibe alertas de pagos registrados fuera de zona.</p></details>
+          <details><summary>¿Cómo se manejan los pagos por depósito?</summary><p>El cobrador o el cliente reportan el depósito con banco, número de boleta y foto del comprobante. El pago queda pendiente hasta que un supervisor o administrador lo verifica.</p></details>
+          <details><summary>¿Qué pasa con mi información si dejo de pagar el alquiler?</summary><p>Puedes solicitar la exportación completa de tus datos en Excel antes de finalizar el servicio.</p></details>
+          <details><summary>¿Puedo pasar de alquiler a compra?</summary><p>Sí. Parte de lo pagado en suscripción puede abonarse a la compra de la licencia según las condiciones vigentes.</p></details>
+          <details><summary>¿Hay periodo de prueba?</summary><p>Ofrecemos una demostración guiada y un periodo de prueba para que evalúes el sistema con tus propios datos.</p></details>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====== CONTACTO ====== -->
+    <section id="contacto" class="cta" aria-labelledby="contacto-title">
+      <div class="container contact-grid">
+        <div>
+          <h2 id="contacto-title">Solicita una demostración</h2>
+          <p>Déjanos tus datos y te mostramos cómo PrestaControl puede ordenar tu cartera de préstamos.</p>
+          <!-- Reemplaza estos datos de contacto por los tuyos -->
+          <ul class="contact-info">
+            <li>📧 <a href="mailto:ventas@tuempresa.com">ventas@tuempresa.com</a></li>
+            <li>📱 <a href="tel:+000000000000">+000 0000 0000</a></li>
+            <li>💬 <a href="https://wa.me/000000000000" rel="noopener">WhatsApp</a></li>
+          </ul>
+        </div>
+
+        <form id="contact-form" novalidate aria-describedby="form-status">
+          <div class="form-row">
+            <div>
+              <label for="nombre">Nombre *</label>
+              <input id="nombre" name="nombre" type="text" autocomplete="name" required maxlength="100" />
+            </div>
+            <div>
+              <label for="empresa">Empresa</label>
+              <input id="empresa" name="empresa" type="text" autocomplete="organization" maxlength="100" />
+            </div>
+          </div>
+          <div class="form-row">
+            <div>
+              <label for="email">Correo electrónico *</label>
+              <input id="email" name="email" type="email" autocomplete="email" required maxlength="150" />
+            </div>
+            <div>
+              <label for="telefono">Teléfono</label>
+              <input id="telefono" name="telefono" type="tel" autocomplete="tel" maxlength="30" />
+            </div>
+          </div>
+          <div>
+            <label for="plan">Plan de interés</label>
+            <select id="plan" name="plan">
+              <option>No estoy seguro</option>
+              <option>Alquiler - Básico</option>
+              <option>Alquiler - Profesional</option>
+              <option>Alquiler - Empresarial</option>
+              <option>Venta - Licencia Estándar</option>
+              <option>Venta - Licencia Plus</option>
+              <option>Venta - Código Fuente</option>
+            </select>
+          </div>
+          <div>
+            <label for="mensaje">Mensaje</label>
+            <textarea id="mensaje" name="mensaje" maxlength="1000" placeholder="Cuéntanos cuántos préstamos manejas, cuántos cobradores tienes..."></textarea>
+          </div>
+          <button type="submit" class="btn btn-primary">Enviar solicitud</button>
+          <p id="form-status" class="form-msg" role="status" aria-live="polite"></p>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container footer-grid">
+      <span>© <span id="year"></span> PrestaControl. Todos los derechos reservados.</span>
+      <span><a href="#">Términos</a> · <a href="#">Privacidad</a></span>
+    </div>
+  </footer>
+
+  <script>
+    // Menú móvil
+    const toggle = document.querySelector('.menu-toggle');
+    const menu = document.getElementById('menu');
+    toggle.addEventListener('click', () => {
+      const open = menu.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', open);
+      toggle.setAttribute('aria-label', open ? 'Cerrar menú' : 'Abrir menú');
+    });
+    menu.querySelectorAll('a').forEach(a => a.addEventListener('click', () => {
+      menu.classList.remove('open');
+      toggle.setAttribute('aria-expanded', 'false');
+    }));
+
+    // Pestañas Alquiler / Venta (accesibles con teclado)
+    const tabs = [...document.querySelectorAll('[role="tab"]')];
+    function selectTab(tab) {
+      tabs.forEach(t => {
+        const selected = t === tab;
+        t.setAttribute('aria-selected', selected);
+        t.tabIndex = selected ? 0 : -1;
+        document.getElementById(t.getAttribute('aria-controls')).hidden = !selected;
+      });
+      tab.focus();
+    }
+    tabs.forEach((tab, i) => {
+      tab.addEventListener('click', () => selectTab(tab));
+      tab.addEventListener('keydown', e => {
+        if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+          e.preventDefault();
+          const next = (i + (e.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
+          selectTab(tabs[next]);
+        }
+      });
+    });
+
+    // Preseleccionar el plan en el formulario al hacer clic en un botón de plan
+    document.querySelectorAll('[data-plan]').forEach(btn => {
+      btn.addEventListener('click', () => { document.getElementById('plan').value = btn.dataset.plan; });
+    });
+
+    // Validación básica del formulario (conectar a tu backend o servicio de correo)
+    document.getElementById('contact-form').addEventListener('submit', e => {
+      e.preventDefault();
+      const form = e.target;
+      const status = document.getElementById('form-status');
+      const nombre = form.nombre.value.trim();
+      const email = form.email.value.trim();
+      if (!nombre || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        status.style.color = '#c62828';
+        status.textContent = 'Por favor ingresa tu nombre y un correo electrónico válido.';
+        (!nombre ? form.nombre : form.email).focus();
+        return;
+      }
+      // TODO: enviar los datos con fetch() a tu endpoint, por ejemplo POST /api/leads
+      status.style.color = '';
+      status.textContent = '¡Gracias, ' + nombre + '! Te contactaremos pronto.';
+      form.reset();
+    });
+
+    document.getElementById('year').textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>
